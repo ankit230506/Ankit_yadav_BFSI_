@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BFSI Fraud Detection — Smart Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<style>
+:root{
+  --bg:#0b1220;--card:#0f1a33;--muted:#9caac2;--accent:#00c6ff;--accent-2:#0077ff;
+  --text:#e7eef7;--glass:rgba(255,255,255,0.05);--header:#0a1529;
+  --success:#00ff9d; --danger:#ff4d4d;
+}
+:root.light{
+  --bg:#edf1f7;--card:#ffffff;--muted:#485160;--accent:#0077ff;--accent-2:#004fbb;
+  --text:#071c30;--glass:rgba(0,0,0,0.05);--header:#dde5ee;
+  --success:#00995e; --danger:#cc0000;
+}
+*{box-sizing:border-box;font-family:Inter,Roboto,Arial}
+body{margin:0;background:var(--bg);color:var(--text);transition:0.4s}
+
+/* LOGIN */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,0.55);z-index:50}
+.login-box{width:350px;background:var(--card);padding:24px;border-radius:12px;text-align:center;backdrop-filter:blur(8px)}
+.login-box input{width:100%;padding:10px;margin:8px 0;border:none;border-radius:8px;background:var(--glass);color:var(--text)}
+.login-btn{width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#022;font-weight:700;cursor:pointer}
+.err{color:var(--danger);font-size:13px;display:none;margin-top:4px}
+
+/* APP Structure */
+#app{display:none;min-height:100vh}
+header{display:flex;align-items:center;padding:14px 20px;background:var(--header);border-bottom:1px solid rgba(255,255,255,0.04)}
+.brand{font-weight:700;font-size:18px}
+nav{display:flex;gap:8px;margin-left:20px}
+nav button{background:none;border:none;padding:8px 12px;color:var(--muted);cursor:pointer;border-radius:8px;font-size:14px}
+nav button.active, nav button:hover{background:var(--glass);color:var(--text)}
+.controls{margin-left:auto;display:flex;gap:8px}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:none;color:var(--text);cursor:pointer}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;color:#022;font-weight:700}
+
+/* CONTENT & CARDS */
+.container{padding:22px;max-width:1100px;margin:auto}
+section{display:none;padding-bottom:30px}
+section.active{display:block}
+.card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(8px); margin-bottom: 20px;}
+h2{margin:0 0 12px;font-size:20px;color:var(--text)}
+h3{margin:0 0 15px;font-size:16px;color:var(--muted);font-weight:500}
+
+
+/* 1. Ticker */
+.ticker-container {
+  background: #000; color: #0f0; font-family: 'Courier New', monospace;
+  padding: 8px 15px; border-radius: 6px; overflow: hidden; white-space: nowrap;
+  margin-bottom: 20px; border:1px solid #333; font-size: 13px;
+}
+.ticker-text { display: inline-block; animation: marquee 25s linear infinite; }
+@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+/* 2. Compliance Badges */
+.badge-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; justify-content: flex-start; }
+.badge-item {
+  background: var(--glass); border: 1px solid var(--muted); color: var(--muted);
+  padding: 8px 16px; border-radius: 50px; font-size: 12px; font-weight: 700;
+  transition: 0.3s; cursor: default; letter-spacing: 0.5px;
+}
+.badge-item:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(0,198,255,0.2); }
+
+/* 3. Calculator */
+.calc-wrapper {
+  background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  padding: 20px; border-radius: 10px; border-left: 4px solid var(--accent);
+}
+.calc-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center; }
+.range-group { margin-bottom: 15px; }
+.range-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.calc-result { text-align: center; background: var(--glass); padding: 15px; border-radius: 8px; }
+.calc-money { font-size: 28px; font-weight: 800; color: var(--success); display: block; margin-top: 5px; }
+
+/* Stats & Forms (Existing) */
+.stats{display:flex;gap:10px;margin-bottom:10px}
+.stat-box{flex:1;background:var(--glass);padding:14px;text-align:center;border-radius:10px;border:1px solid rgba(255,255,255,0.1)}
+.stat-num{font-size:22px;font-weight:700;color:var(--accent)}
+canvas{margin-top:15px;background:transparent}
+.txn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.txn-grid input, .txn-grid select{ padding:10px;border-radius:8px;border:none;background:var(--glass);color:var(--text) }
+#result{margin-top:12px;font-size:16px;font-weight:600;color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box animate__animated animate__zoomIn">
+    <h2>Login</h2>
+    <input id="email" type="text" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button class="login-btn" onclick="loginUser()">Login</button>
+    <div id="err" class="err">Wrong Username or Password</div>
+  </div>
+</div>
+
+<div id="app">
+<header>
+  <div class="brand">BFSI SecureShield AI</div>
+  <nav id="menu">
+    <button data-sec="home" class="active">Home</button>
+    <button data-sec="charts">Analytics</button>
+    <button data-sec="recommend">Recommendation</button>
+    <button data-sec="demo">Test Prediction</button>
+  </nav>
+  <div class="controls">
+    <button id="theme" class="btn">Theme</button>
+    <button id="logout" class="btn">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+
+<section id="home" class="active">
+  
+  <div class="ticker-container">
+    <div class="ticker-text">
+      🛑 [BLOCKED] SQL Injection • Origin: Russia • Target: Login API &nbsp;&nbsp; | &nbsp;&nbsp; 
+      ⚠️ [FLAGGED] Velocity Limit Breach • User: ID_9928 • Mumbai &nbsp;&nbsp; | &nbsp;&nbsp; 
+      🛡️ [SECURED] Credential Stuffing • Origin: Proxy Net • 12ms Latency &nbsp;&nbsp; | &nbsp;&nbsp; 
+      🛑 [BLOCKED] Synthetic Identity • Score: 98/100 • New Delhi &nbsp;&nbsp; | &nbsp;&nbsp;
+      ✅ [CLEARED] High Value Txn • $50,000 • Enterprise Account
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Enterprise Fraud Prevention</h2>
+    <h3>Trusted by Regulated Institutions Globally</h3>
+
+    <div class="badge-row">
+      <div class="badge-item">🔒 PCI-DSS Level 1</div>
+      <div class="badge-item">📜 SOC 2 Type II</div>
+      <div class="badge-item">🇪🇺 GDPR Compliant</div>
+      <div class="badge-item">🏦 RBI Guidelines</div>
+      <div class="badge-item">🔐 ISO 27001</div>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--glass); margin: 25px 0;">
+
+    <h2>False Positive Savings Calculator</h2>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:20px">
+      Don't let security block legitimate revenue. Calculate how much you can recover by reducing false declines.
+    </p>
+
+    <div class="calc-wrapper">
+      <div class="calc-flex">
+        <div class="inputs">
+          <div class="range-group">
+            <div class="range-label">
+              <span>Monthly Transaction Vol ($)</span>
+              <span id="volDisp">$10M</span>
+            </div>
+            <input type="range" id="calcVol" min="1000000" max="100000000" step="1000000" value="10000000">
+          </div>
+          
+          <div class="range-group">
+            <div class="range-label">
+              <span>Current Decline Rate (%)</span>
+              <span id="rateDisp">15%</span>
+            </div>
+            <input type="range" id="calcRate" min="1" max="40" step="1" value="15">
+          </div>
+        </div>
+
+        <div class="calc-result">
+          <span style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted)">Potential Revenue Recovered</span>
+          <span id="savedMoney" class="calc-money">$300,000</span>
+          <div style="font-size:11px; color:var(--muted); margin-top:5px">per month (est. 20% recovery)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="charts" class="card">
+  <h2>Fraud Analytics</h2>
+  <canvas id="barChart"></canvas>
+  <canvas id="donutChart" style="margin-top:25px"></canvas>
+</section>
+
+<section id="recommend" class="card">
+<h2>Risk Recommendation</h2>
+<div class="stats">
+  <div class="stat-box"><div class="stat-num">12,540</div>Total Transactions</div>
+  <div class="stat-box"><div class="stat-num">312</div>Fraud Cases</div>
+  <div class="stat-box"><div class="stat-num">2.49%</div>Fraud Rate</div>
+</div>
+<p id="recOutput" style="font-size:15px;font-weight:600;color:var(--accent);margin-top:20px">Enter data in prediction section to get AI-based insights.</p>
+</section>
+
+<section id="demo" class="card">
+<h2>Live Prediction</h2>
+<div class="txn-grid">
+<input id="state" placeholder="State" />
+<input id="city" placeholder="City" />
+<input id="branch" placeholder="Bank Branch" />
+<select id="acctType"><option>Savings</option><option>Current</option><option>Salary</option></select>
+<input id="txnId" placeholder="Transaction ID" />
+<input id="txnDate" type="date" />
+<input id="txnTime" type="time" />
+<input id="amount" type="number" placeholder="Amount (₹)" />
+<input id="merchantId" placeholder="Merchant ID" />
+<select id="txnType"><option>Online</option><option>UPI</option><option>Card</option><option>ATM</option><option>Wallet</option></select>
+<input id="merchantCat" placeholder="Merchant Category" />
+<input id="balance" type="number" placeholder="Account Balance (₹)" />
+<input id="device" placeholder="Transaction Device" />
+<input id="location" placeholder="Transaction Location" />
+<input id="devType" placeholder="Device Type" />
+<input id="currency" placeholder="Currency" />
+<input id="desc" placeholder="Description" />
+</div>
+
+<button id="predictBtn" class="btn primary" style="margin-top:12px">Predict</button>
+<div id="result"></div>
+</section>
+
+</div>
+</div>
+
+<script>
+// LOGIN
+const validUsers = [
+  { email: "admin@fraud.com", password: "Admin123" },
+  { email: "analyst@fraud.com", password: "Analyst2025" }
+];
+function loginUser(){
+  let e=email.value.trim(), p=password.value.trim();
+  let f=validUsers.find(u=>u.email===e && u.password===p);
+  if(f){ login.style.display="none"; app.style.display="block"; err.style.display="none"; }
+  else err.style.display="block";
+}
+
+// Navigation
+menu.onclick = e=>{
+ const b=e.target.closest("button"); if(!b)return;
+ menu.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+ b.classList.add("active");
+ document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(b.dataset.sec).classList.add("active");
+};
+
+// Theme switch
+theme.onclick = ()=>document.documentElement.classList.toggle("light");
+
+// Logout
+logout.onclick = ()=>{ app.style.display="none"; login.style.display="flex"; email.value=""; password.value=""; };
+
+// ============================
+// CALCULATOR LOGIC (NEW)
+// ============================
+function updateCalc() {
+    const vol = parseInt(calcVol.value);
+    const rate = parseInt(calcRate.value);
+    
+    // Logic: Volume * (DeclineRate/100) * 0.20 (Recovery Factor)
+    const recovery = vol * (rate / 100) * 0.20;
+    
+    // Format Numbers
+    volDisp.innerText = "$" + (vol / 1000000).toFixed(1) + "M";
+    rateDisp.innerText = rate + "%";
+    savedMoney.innerText = "$" + recovery.toLocaleString(undefined, {maximumFractionDigits: 0});
+}
+
+// Attach listeners to sliders
+calcVol.oninput = updateCalc;
+calcRate.oninput = updateCalc;
+// Initialize
+updateCalc();
+
+// ============================
+// API BASED PREDICTION LOGIC
+// ============================
+predictBtn.onclick = async () => {
+  const formData = {
+    Customer_ID: txnId.value || "TEMP001",
+    Customer_Name: "User",
+    Gender: "NA",
+    Age: 25,
+    State: state.value,
+    City: city.value,
+    Bank_Branch: branch.value,
+    Account_Type: acctType.value,
+    Transaction_ID: txnId.value,
+    Transaction_Date: txnDate.value,
+    Transaction_Time: txnTime.value,
+    Transaction_Amount: Number(amount.value),
+    Merchant_ID: merchantId.value,
+    Transaction_Type: txnType.value,
+    Merchant_Category: merchantCat.value,
+    Account_Balance: Number(balance.value),
+    Transaction_Device: device.value,
+    Transaction_Location: location.value,
+    Device_Type: devType.value,
+    Transaction_Currency: currency.value,
+    Customer_Contact: "N/A",
+    Transaction_Description: desc.value
+  };
+
+  result.style.color = "#ffc107";
+  result.innerHTML = "⏳ Running AI Model...";
+
+  try {
+      const response = await fetch("http://127.0.0.1:8000/predict", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      result.style.color = data.prediction === "Fraud" ? "#ff4d4d" : "#00ff9d";
+      result.innerHTML = `
+          🧠 <b>Prediction:</b> ${data.prediction}<br>
+          📊 <b>Probability:</b> ${data.probability_pct}%
+      `;
+
+      recOutput.innerHTML = 
+        data.prediction === "Fraud" 
+        ? "⚠ Alert: High Risk — Transaction Must Be Verified!" 
+        : "✔ Low Risk: Transaction Appears Normal";
+
+  } catch(err){
+      result.style.color = "red";
+      result.innerHTML = "❌ Server Error — Check Backend!";
+  }
+};
+
+// CHARTS
+new Chart(barChart,{
+ type:"bar",
+ data:{labels:["UPI","Net Banking","Debit Card","Credit Card","ATM","Wallet"],datasets:[{label:"Fraud Cases",data:[110,75,56,42,9,20], backgroundColor: '#00c6ff'}]}
+});
+
+new Chart(donutChart,{
+ type:"doughnut",
+ data:{labels:["Mobile Device","Desktop","ATM Kiosk","POS Machine"],datasets:[{data:[65,20,8,7], backgroundColor: ['#00c6ff', '#0077ff', '#004fbb', '#9caac2']}]}
+});
+</script>
+</body>
+</html>
